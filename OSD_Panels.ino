@@ -564,8 +564,8 @@ void panClimb(int first_col, int first_line){
 	
 	                                  // Knots           % of 10 m/s Cruise
 	#define VARIO_RISE_BIGUP	4.0f  // 8 kts Updraft   40%
-	#define VARIO_RISE_START	0.5f  // pfft            5%
-	#define VARIO_SINK_START	-1.5f // nada            15%
+	#define VARIO_RISE_START	0.5f  // ~               5%
+	#define VARIO_SINK_START	-1.5f // ~               15%
 	#define VARIO_SINK_BIGDN	-5.0f // 10 kts Downdft  50%
     osd.printf("%c%+#5.1f%c", ( (vs>VARIO_RISE_START)? ((vs>VARIO_RISE_BIGUP)? 0x15 : 0x16) : \
 		(vs<(VARIO_SINK_START))? ((vs<(VARIO_SINK_BIGDN))? 0x1E : 0x1A) : 0x00 ), vs, 0x19);
