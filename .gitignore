@@ -1,0 +1,9 @@
+*
+
+!*.ino
+!*.cpp
+!*.h
+!*.pde
+!*.osd
+!*.mcm
+!.gitignore
