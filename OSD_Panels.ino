@@ -559,14 +559,53 @@ void panAlt(int first_col, int first_line){
 void panClimb(int first_col, int first_line){
     osd.setPanel(first_col, first_line);
     osd.openPanel();
-    vs = (osd_climb) * 0.2 + vs * 0.8;
+	// PE = mass * g * osd_alt
+	// KE = 0.5 * mass * osd_airspeed * osd_airspeed;
+	// dPE = mass * g * osd_climb			Power      (Joules per second)
+	// dKE = 0.5 * 2 * mass * accel * osd_airspeed 	Power      (Joules per second) via Chain Rule
+	
+	// Ultimate Formula:
+	// dTE = dPE + dKE = (m * g * osd_climb) + ( m * osd_aspd_accel * osd_airspeed)
+	// Helicity is m^2/s^2, kg * m^2/s^2 is what we are getting, so drop the kg, and we get dH/dt
+	// dTE/kg = (g * osd_climb) + (osd_aspd_accel * osd_airspeed)
+	// dTH = 10.0 * osd_climb + osd_aspd_accel * osd_airspeed
+	// dTH/10.0 = osd_climb + 0.1 * osd_aspd_accel * osd_airspeed
+	// Lets test this out: Say we start on the desk at 10 m/s and pull to a straight-up coast. mgh w/o m yields helicity, H
+	// PH = 0, KH = 10^2 = 100, TH = 100
+	// Instant at start of coast: osd_climb = 10, osd_aspd_accel = -10 m/s^2
+	// dTH = 10*10 + -10 * 10 = 0
+	// At the top: dTH = 10*0 + -10 * 0 = 0
+	
+	// pesudo_vs_but_really_deciH = osd_climb + 0.1 * osd_aspd_accel * osd_airspeed
+	// osd_aspd_accel = annoying:
+	//		I could easily make a variable that only gets updated here in this function, which calculates dV/dt, but I need 
+	//		the timing to be known. If this is visited irregulary, than any calculation on a difference is skewed. So, I need
+	//		to make a new variable that get updated with known timing, or, more likely, just use millis to resolve the time.
+	// 		I believe that declaring a static within function brackets is basicall the same as declaring a static variable outside, 
+	// 		in terms of where stored and handled. The difference is that the variable scope/visibility is only within that function.
+	//		So, I'll declare the timer variable here rather than make an entry in the OSD_Vars.h file.
+	
+	static unsigned long prev_aspd_timestp = 0;
+	static unsigned long prev_osd_airspeed = 0;
+	static float osd_aspd_accel = 0;
+	
+	unsigned long current_aspd_timestp = millis();
+	osd_aspd_accel = (current_aspd_timestp > prev_aspd_timestp)? (osd_airspeed - prev_osd_airspeed) / (current_aspd_timestp-prev_aspd_timestp) : 0;
+	prev_aspd_timestp = current_aspd_timestp;
+	prev_osd_airspeed = osd_airspeed;
+	
+	float osd_compensated_vario = (osd_climb + (0.1 * osd_aspd_accel * osd_airspeed) );
+    vs = (osd_compensated_vario) * 0.1 + vs * 0.9;
+	
+    // vs = (osd_climb) * 0.2 + vs * 0.8;
     // vs = (osd_climb);
 	
-	                                  // Knots           % of 10 m/s Cruise
-	#define VARIO_RISE_BIGUP	4.0f  // 8 kts Updraft   40%
-	#define VARIO_RISE_START	0.5f  // ~               5%
-	#define VARIO_SINK_START	-1.5f // ~               15%
-	#define VARIO_SINK_BIGDN	-5.0f // 10 kts Downdft  50%
+	// 3 July 2014 Testing of Calypso shows almost exactly 1.0 m/s sink for 10 m/s glide and neutral flaps.
+	                                  // Knots           % of 10 m/s Cruise		% of -1.0 m/s Standard Sink
+	#define VARIO_RISE_BIGUP	4.0f  // 8 kts Updraft   40%					400%
+	#define VARIO_RISE_START	0.5f  // ~               5%						150%
+	#define VARIO_SINK_START	-1.5f // ~               15%					50%
+	#define VARIO_SINK_BIGDN	-5.0f // 10 kts Downdft  50%					400%
     osd.printf("%c%+#5.1f%c", ( (vs>VARIO_RISE_START)? ((vs>VARIO_RISE_BIGUP)? 0x15 : 0x16) : \
 		(vs<(VARIO_SINK_START))? ((vs<(VARIO_SINK_BIGDN))? 0x1E : 0x1A) : 0x00 ), vs, 0x19);
 	// V-00.0S
@@ -1129,7 +1168,7 @@ void showArrow(uint8_t rotate_arrow,uint8_t method) {
     arrow_set1 = rotate_arrow * 2 + 0x8E;
 
 //    if(method == 1) osd.printf("%c%3.0f%c|%c%c%2.0f%c",0x1d,(double)(osd_windspeed * converts),spe, arrow_set1, arrow_set2,(double)(osd_windspeedz * converts),spe);
-    if(method == 1) osd.printf("%c%3.0f%c|%c%c%2.0f%c",0x1d,(double)(osd_windspeed * converts),spe, arrow_set1, arrow_set1 + 1,(double)(nor_osd_windspeed * converts),spe);
+    if(method == 1) osd.printf("%c%3.0f%c|%c%c%2.0f%c",0x1d,(double)(osd_windspeed),0x19, arrow_set1, arrow_set1 + 1,(double)(nor_osd_windspeed),0x19);
     else if(method == 2) osd.printf("%c%c%4i%c", arrow_set1, arrow_set1 + 1, off_course, 0x05);   
     else osd.printf("%c%c", arrow_set1, arrow_set1 + 1);
 }
