@@ -212,6 +212,16 @@ void panTemp(int first_col, int first_line){
 void panEff(int first_col, int first_line){
     osd.setPanel(first_col, first_line);
     osd.openPanel();
+	
+	// Small Angle Approx assumed, otherwise, must find Horiz. Component by sqrt(aspd^2 - climb^2)
+	// The error with this method is about 2% for -2.0 m/s and 10 m/s
+	float glideInst = (osd_airspeed >= 7.0f)? ((osd_climb <= -0.2f)? (osd_airspeed/(-osd_climb)) : 100.0f) : 0.0f;
+	glide = glideInst * 0.05 + glide * 0.95;
+	
+	osd.printf("%3.0f%c", glide, 0x18);
+	
+	
+	/*
     if (osd_throttle >= 1){
       if (ma == 0) {
               ma = 1;
@@ -250,6 +260,8 @@ void panEff(int first_col, int first_line){
             
         
     }
+	
+	*/
 
     osd.closePanel();
 }
@@ -602,10 +614,10 @@ void panClimb(int first_col, int first_line){
 	
 	// 3 July 2014 Testing of Calypso shows almost exactly 1.0 m/s sink for 10 m/s glide and neutral flaps.
 	                                  // Knots           % of 10 m/s Cruise		% of -1.0 m/s Standard Sink
-	#define VARIO_RISE_BIGUP	4.0f  // 8 kts Updraft   40%					400%
+	#define VARIO_RISE_BIGUP	3.0f  //                                                      8 kts Updraft   40%					400%
 	#define VARIO_RISE_START	0.5f  // ~               5%						150%
 	#define VARIO_SINK_START	-1.5f // ~               15%					50%
-	#define VARIO_SINK_BIGDN	-5.0f // 10 kts Downdft  50%					400%
+	#define VARIO_SINK_BIGDN	-3.0f //                                                      10 kts Downdft  50%					400%
     osd.printf("%c%+#5.1f%c", ( (vs>VARIO_RISE_START)? ((vs>VARIO_RISE_BIGUP)? 0x15 : 0x16) : \
 		(vs<(VARIO_SINK_START))? ((vs<(VARIO_SINK_BIGDN))? 0x1E : 0x1A) : 0x00 ), vs, 0x19);
 	// V-00.0S
@@ -643,7 +655,7 @@ void panVel(int first_col, int first_line){
 //    osd.printf("%c%3.0f%c",0x14,(double)(osd_groundspeed * converts),spe);
 //    if (iconGS == 1) 
     if(EEPROM.read(SIGN_GS_ON_ADDR) != 0) osd.printf_P(PSTR("\x14"));
-    osd.printf("%3.0f%c",(double)(osd_groundspeed),0x19);
+    osd.printf("%4.1f%c",(double)(osd_groundspeed),0x19);
     osd.closePanel();
 }
 
@@ -659,8 +671,19 @@ void panAirSpeed(int first_col, int first_line){
     osd.openPanel();
 //    osd.printf("%c%3.0f%c", 0x13, (double)(osd_airspeed * converts), spe);
 //    if (iconAS == 1) 
+	
+	
+	#define ASPD_BEST_LD_TOP_THRESH		11.8f
+	#define ASPD_BEST_LD_UPM_THRESH		11.3f
+	#define ASPD_BEST_LD_LOM_THRESH		10.3f
+	#define ASPD_BEST_LD_LOW_THRESH		9.8f
+	uint8_t aspdTape = 	(osd_airspeed < ASPD_BEST_LD_LOW_THRESH)? 0xF1: \
+						(osd_airspeed > ASPD_BEST_LD_TOP_THRESH)? 0xDA: \
+						(osd_airspeed < ASPD_BEST_LD_LOM_THRESH)? 0xE7: \
+						(osd_airspeed > ASPD_BEST_LD_UPM_THRESH)? 0xD3: 0xC5;
+	
     if(EEPROM.read(SIGN_AS_ON_ADDR) != 0) osd.printf_P(PSTR("\x13"));        
-    osd.printf("%3.0f%c", (double)(osd_airspeed), 0x19); 
+    osd.printf("%4.1f%c%c", (double)(osd_airspeed), 0x19, aspdTape); 
     osd.closePanel();
 }
 
