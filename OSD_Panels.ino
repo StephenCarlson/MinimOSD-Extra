@@ -215,8 +215,10 @@ void panEff(int first_col, int first_line){
 	
 	// Small Angle Approx assumed, otherwise, must find Horiz. Component by sqrt(aspd^2 - climb^2)
 	// The error with this method is about 2% for -2.0 m/s and 10 m/s
-	float glideInst = (osd_airspeed >= 7.0f)? ((osd_climb <= -0.2f)? (osd_airspeed/(-osd_climb)) : 100.0f) : 0.0f;
-	glide = glideInst * 0.05 + glide * 0.95;
+	float glideInst = (osd_airspeed >= 5.0f)? ((osd_climb <= -0.1f)? (osd_airspeed/(-osd_climb)) : 100.0f) : 0.0f;
+	
+	
+	glide = (osd_climb <= -0.1f)? (glideInst * 0.05 + glide * 0.95) : glide;
 	
 	osd.printf("%3.0f%c", glide, 0x18);
 	
