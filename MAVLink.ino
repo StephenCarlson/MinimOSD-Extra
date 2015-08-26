@@ -156,7 +156,8 @@ void read_mavlink(){
                 break;
             case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:
                 {
-                    osd_home_alt = osd_alt - (mavlink_msg_global_position_int_get_relative_alt(&msg)*0.001);
+                    osd_alt_to_home = (mavlink_msg_global_position_int_get_relative_alt(&msg)*0.001);
+                    osd_home_alt = osd_alt - osd_alt_to_home;
                 }
                 break;
             default:

@@ -585,7 +585,7 @@ void panClimb(int first_col, int first_line){
 	// dTE/kg = (g * osd_climb) + (osd_aspd_accel * osd_airspeed)
 	// dTH = 10.0 * osd_climb + osd_aspd_accel * osd_airspeed
 	// dTH/10.0 = osd_climb + 0.1 * osd_aspd_accel * osd_airspeed
-	// Lets test this out: Say we start on the desk at 10 m/s and pull to a straight-up coast. mgh w/o m yields helicity, H
+	// Lets test this out: Say we start on the deck at 10 m/s and pull to a straight-up coast. mgh w/o m yields helicity, H
 	// PH = 0, KH = 10^2 = 100, TH = 100
 	// Instant at start of coast: osd_climb = 10, osd_aspd_accel = -10 m/s^2
 	// dTH = 10*10 + -10 * 10 = 0
@@ -594,26 +594,25 @@ void panClimb(int first_col, int first_line){
 	// pesudo_vs_but_really_deciH = osd_climb + 0.1 * osd_aspd_accel * osd_airspeed
 	// osd_aspd_accel = annoying:
 	//		I could easily make a variable that only gets updated here in this function, which calculates dV/dt, but I need 
-	//		the timing to be known. If this is visited irregulary, than any calculation on a difference is skewed. So, I need
+	//		the timing to be known. If this is visited irregularly, than any calculation on a difference is skewed. So, I need
 	//		to make a new variable that get updated with known timing, or, more likely, just use millis to resolve the time.
-	// 		I believe that declaring a static within function brackets is basicall the same as declaring a static variable outside, 
+	// 		I believe that declaring a static within function brackets is basically the same as declaring a static variable outside, 
 	// 		in terms of where stored and handled. The difference is that the variable scope/visibility is only within that function.
 	//		So, I'll declare the timer variable here rather than make an entry in the OSD_Vars.h file.
 	
 	static unsigned long prev_aspd_timestp = 0;
-	static unsigned long prev_osd_airspeed = 0;
+	static float prev_osd_airspeed = 0;
 	static float osd_aspd_accel = 0;
 	
 	unsigned long current_aspd_timestp = millis();
-	osd_aspd_accel = (current_aspd_timestp > prev_aspd_timestp)? (osd_airspeed - prev_osd_airspeed) / (current_aspd_timestp-prev_aspd_timestp) : 0;
+	float current_aspd_accel = (current_aspd_timestp > prev_aspd_timestp)? ((osd_airspeed - prev_osd_airspeed)*1000.0) / (current_aspd_timestp-prev_aspd_timestp) : 0;
+	osd_aspd_accel = (current_aspd_accel * 0.2) + (osd_aspd_accel * 0.8);
 	prev_aspd_timestp = current_aspd_timestp;
 	prev_osd_airspeed = osd_airspeed;
 	
 	float osd_compensated_vario = (osd_climb + (0.1 * osd_aspd_accel * osd_airspeed) );
-    vs = (osd_compensated_vario) * 0.1 + vs * 0.9;
-	
-    // vs = (osd_climb) * 0.2 + vs * 0.8;
-    // vs = (osd_climb);
+    // vs = ((osd_climb) * 0.1) + (vs * 0.9);
+    vs = ((osd_compensated_vario) * 0.1) + (vs * 0.9);
 	
 	// 3 July 2014 Testing of Calypso shows almost exactly 1.0 m/s sink for 10 m/s glide and neutral flaps.
 	                                  // Knots           % of 10 m/s Cruise		% of -1.0 m/s Standard Sink
@@ -621,7 +620,9 @@ void panClimb(int first_col, int first_line){
 	#define VARIO_RISE_START	0.5f  // ~               5%						150%
 	#define VARIO_SINK_START	-1.5f // ~               15%					50%
 	#define VARIO_SINK_BIGDN	-3.0f //                                                      10 kts Downdft  50%					400%
-    osd.printf("%c%+#5.1f%c", ( (vs>VARIO_RISE_START)? ((vs>VARIO_RISE_BIGUP)? 0x15 : 0x16) : \
+    // osd.printf("%c%+#5.1f%c|%c%+#5.1f", ( (vs>VARIO_RISE_START)? ((vs>VARIO_RISE_BIGUP)? 0x15 : 0x16) : \
+	// 	(vs<(VARIO_SINK_START))? ((vs<(VARIO_SINK_BIGDN))? 0x1E : 0x1A) : 0x00 ), vs, 0x19, 0x00, osd_aspd_accel);
+	 osd.printf("%c%+#5.1f%c", ( (vs>VARIO_RISE_START)? ((vs>VARIO_RISE_BIGUP)? 0x15 : 0x16) : \
 		(vs<(VARIO_SINK_START))? ((vs<(VARIO_SINK_BIGDN))? 0x1E : 0x1A) : 0x00 ), vs, 0x19);
 	// V-00.0S
 	//  12345
